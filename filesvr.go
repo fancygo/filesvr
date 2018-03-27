@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/FancyGo/svrreg"
 	"html/template"
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -26,8 +29,9 @@ const (
 )
 
 func main() {
+	//filesvr服务
 	server := http.Server{
-		Addr:        ":8001",
+		Addr:        ":" + strconv.Itoa(FILE_SVR_PORT),
 		Handler:     &Myhandler{},
 		ReadTimeout: 10 * time.Second,
 	}
@@ -37,8 +41,40 @@ func main() {
 	mux["/js"] = jsFile
 	mux["/file"] = commonFile
 	mux["/css"] = cssFile
-	fmt.Println("Hello, this is FancyGo file svr!")
-	server.ListenAndServe()
+	mux["/health"] = health
+	fmt.Println("Hello, this is FancyGo filesvr!")
+	go server.ListenAndServe()
+
+	//服务注册
+	regCfg := &svrreg.RegCfg{
+		LocalSvrID:       FILE_SVR_ID,
+		LocalSvrName:     FILE_SVR_NAME,
+		LocalSvrDNS:      FILE_SVR_DNS,
+		LocalSvrPort:     FILE_SVR_PORT,
+		CoreSvrDNS:       CORE_SVR_DNS,
+		CoreSvrPort:      CORE_SVR_PORT,
+		SvrCheckTimeout:  SVR_CHECK_TIMEOUT,
+		SvrCheckInterval: SVR_CHECK_INTERVAL,
+	}
+
+	regConsul := svrreg.NewRegConsul()
+	if ok := svrreg.Reginit(regConsul, regCfg); !ok {
+		return
+	}
+
+	if ok := svrreg.Reg(regConsul); !ok {
+		return
+	}
+
+	//设置sigint信号
+	close := make(chan os.Signal, 1)
+	signal.Notify(close, os.Interrupt, os.Kill)
+	<-close
+
+	if ok := svrreg.Unreg(regConsul); !ok {
+		return
+	}
+	fmt.Println("Bye, FancyGo filesvr close")
 }
 
 func (*Myhandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +115,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, "%v", handler.Filename+"上传完成!")
 	}
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s", "check health ok!")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
