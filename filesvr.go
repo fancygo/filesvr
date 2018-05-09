@@ -33,7 +33,7 @@ func main() {
 	server := http.Server{
 		Addr:        ":" + strconv.Itoa(FILE_SVR_PORT),
 		Handler:     &Myhandler{},
-		ReadTimeout: 10 * time.Second,
+		ReadTimeout: 100 * time.Second,
 	}
 	mux = make(map[string]func(http.ResponseWriter, *http.Request))
 	mux["/"] = index
@@ -57,21 +57,30 @@ func main() {
 		SvrCheckInterval: SVR_CHECK_INTERVAL,
 	}
 
-	regConsul := svrreg.NewRegConsul()
-	if ok := svrreg.Reginit(regConsul, regCfg); !ok {
+	register := svrreg.NewRegConsul()
+	if ok := register.SvrRegInit(regCfg); !ok {
 		return
 	}
 
-	if ok := svrreg.Reg(regConsul); !ok {
+	if ok := register.RegSvr(); !ok {
 		return
 	}
+	/*
+		if ok := svrreg.Reginit(regConsul, regCfg); !ok {
+			return
+		}
+
+		if ok := svrreg.Reg(regConsul); !ok {
+			return
+		}
+	*/
 
 	//设置sigint信号
 	close := make(chan os.Signal, 1)
 	signal.Notify(close, os.Interrupt, os.Kill)
 	<-close
 
-	if ok := svrreg.Unreg(regConsul); !ok {
+	if ok := register.UnregSvr(); !ok {
 		return
 	}
 	fmt.Println("Bye, FancyGo filesvr close")
@@ -99,17 +108,20 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(32 << 20)
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
+			fmt.Printf("upload err = %v", err)
 			fmt.Fprintf(w, "%v", "上传错误")
 			return
 		}
 		fileext := filepath.Ext(handler.Filename)
 		if check(fileext) == false {
+			fmt.Printf("upload typ err = %v", err)
 			fmt.Fprintf(w, "%v", "类型错误")
 			return
 		}
 		f, _ := os.OpenFile(File_Dir+handler.Filename, os.O_CREATE|os.O_WRONLY, 0660)
 		_, err = io.Copy(f, file)
 		if err != nil {
+			fmt.Printf("upload fail err = %v", err)
 			fmt.Fprintf(w, "%v", "上传失败")
 			return
 		}
