@@ -7,7 +7,8 @@
 
 ### 编译运行
      go build
-     ./filesvr    fancy.filesvr >> log 2>&1 &
+     ./ctrl.sh  filesvr
+     #./filesvr    fancy.filesvr >> log 2>&1 &
 
 ### 在浏览器输入ip:8001 即可看到上传下载页面
 
