@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/FancyGo/svrreg"
+	"github.com/fancygo/svrreg"
 	"html/template"
 	"io"
 	"net/http"
@@ -42,7 +42,7 @@ func main() {
 	mux["/file"] = commonFile
 	mux["/css"] = cssFile
 	mux["/health"] = health
-	fmt.Println("Hello, this is FancyGo filesvr!")
+	fmt.Println("Hello, this is fancygo filesvr!")
 	go server.ListenAndServe()
 
 	//服务注册
@@ -65,15 +65,6 @@ func main() {
 	if ok := register.RegSvr(); !ok {
 		return
 	}
-	/*
-		if ok := svrreg.Reginit(regConsul, regCfg); !ok {
-			return
-		}
-
-		if ok := svrreg.Reg(regConsul); !ok {
-			return
-		}
-	*/
 
 	//设置sigint信号
 	close := make(chan os.Signal, 1)
@@ -83,7 +74,7 @@ func main() {
 	if ok := register.UnregSvr(); !ok {
 		return
 	}
-	fmt.Println("Bye, FancyGo filesvr close")
+	fmt.Println("Bye, fancygo filesvr close")
 }
 
 func (*Myhandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
